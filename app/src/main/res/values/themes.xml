@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- App theme applied after the splash hands off. -->
+    <!-- App theme -->
     <style name="Theme.EcobinApp_v1" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 
-    <!-- Branded launch (splash) theme: ecobin leaf on a light canvas. -->
+    <!-- Splash theme -->
     <style name="Theme.Ecobin.Starting" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/splash_bg</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_ecobin_mark</item>

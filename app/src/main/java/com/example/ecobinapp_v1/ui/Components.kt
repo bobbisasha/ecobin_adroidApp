@@ -31,7 +31,7 @@ import com.example.ecobinapp_v1.ui.theme.EcoGreen
 import com.example.ecobinapp_v1.ui.theme.Ink
 import com.example.ecobinapp_v1.ui.theme.Muted
 
-/** Bold section title with the ecobin green accent bar on the left. */
+/** Title with green accent bar. */
 @Composable
 fun TitleWithAccent(title: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -46,7 +46,7 @@ fun TitleWithAccent(title: String) {
     }
 }
 
-/** Transparent top bar with the accent-bar title, optional back action and trailing actions. */
+/** Transparent top bar with accent title. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EcoTopBar(
@@ -66,7 +66,7 @@ fun EcoTopBar(
     )
 }
 
-/** Airy white card with a hairline border and generous corner radius. */
+/** Bordered white card. */
 @Composable
 fun AppCard(
     modifier: Modifier = Modifier,
@@ -83,7 +83,7 @@ fun AppCard(
     )
 }
 
-/** Small pill with a colored dot + label, e.g. a fullness or connection status. */
+/** Colored dot + label pill. */
 @Composable
 fun StatusBadge(text: String, color: Color, modifier: Modifier = Modifier) {
     Row(
@@ -104,7 +104,7 @@ fun StatusBadge(text: String, color: Color, modifier: Modifier = Modifier) {
     }
 }
 
-/** Human label for a fullness percentage. */
+/** Fullness label. */
 fun fullnessStatusLabel(percent: Int?): String = when {
     percent == null -> "No reading"
     percent >= 95 -> "Critical"

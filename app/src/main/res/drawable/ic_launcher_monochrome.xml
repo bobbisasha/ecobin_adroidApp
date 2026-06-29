@@ -5,7 +5,7 @@
     android:viewportHeight="108">
     <!-- Lid -->
     <path android:pathData="M36,49 h36 v5 h-36 z" android:fillColor="#000000" />
-    <!-- Bin body (tapered) -->
+    <!-- Bin body -->
     <path
         android:pathData="M39,56 L45,89 Q45.5,92 48,92 L60,92 Q62.5,92 63,89 L69,56 Z"
         android:fillColor="#000000" />

@@ -26,7 +26,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-/** A device found while scanning (or a simulated one in demo mode). */
+/** A scanned or demo device. */
 data class DiscoveredDevice(
     val name: String?,
     val address: String,
@@ -37,17 +37,8 @@ data class DiscoveredDevice(
 
 enum class ConnectionState { DISCONNECTED, CONNECTING, CONNECTED, FAILED }
 
-/**
- * Wraps Android BLE scan/connect/notify into a small Flow-based API.
- *
- * Reads CHAR4 (an ASCII "Dist: <N> cm" string) from service 0xFFF0 (see [BleConstants]) via
- * notifications (preferred) or, if the characteristic doesn't support notify, via a periodic read.
- *
- * Demo mode simulates a bin so the whole UI can be exercised on the Android emulator, which has no
- * Bluetooth hardware. It auto-enables on emulators / devices without a BLE adapter, and can be
- * toggled manually from the UI.
- */
-@SuppressLint("MissingPermission") // callers ensure runtime permissions before invoking
+/** Flow-based BLE scan/connect/notify. Demo mode simulates a bin (emulator has no BLE). */
+@SuppressLint("MissingPermission") // permissions checked by callers
 class BleManager(context: Context) {
 
     private val appContext = context.applicationContext
@@ -57,8 +48,7 @@ class BleManager(context: Context) {
         appContext.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
     private val adapter: BluetoothAdapter? = bluetoothManager?.adapter
 
-    // ---- Public state -------------------------------------------------------
-
+    // State
     private val _isScanning = MutableStateFlow(false)
     val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
 
@@ -68,19 +58,18 @@ class BleManager(context: Context) {
     private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
 
-    /** Latest distance reading (cm), or null when none yet. */
+    /** Latest distance (cm). */
     private val _distanceCm = MutableStateFlow<Int?>(null)
     val distanceCm: StateFlow<Int?> = _distanceCm.asStateFlow()
 
     private val _status = MutableStateFlow("")
     val status: StateFlow<String> = _status.asStateFlow()
 
-    /** Whether we are simulating a device instead of using real Bluetooth. */
+    /** Demo simulation flag. */
     private val _demoMode = MutableStateFlow(isProbablyEmulator() || adapter == null)
     val demoMode: StateFlow<Boolean> = _demoMode.asStateFlow()
 
-    // ---- Internals ----------------------------------------------------------
-
+    // Internals
     private var gatt: BluetoothGatt? = null
     private var scanJob: Job? = null
     private var demoJob: Job? = null
@@ -96,7 +85,7 @@ class BleManager(context: Context) {
         _demoMode.value = enabled
     }
 
-    /** Runtime permissions required for scanning/connecting on this Android version. */
+    /** Required runtime permissions. */
     fun requiredPermissions(): Array<String> =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             arrayOf(
@@ -107,8 +96,7 @@ class BleManager(context: Context) {
             arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION)
         }
 
-    // ---- Scanning -----------------------------------------------------------
-
+    // Scanning
     fun startScan() {
         _discovered.value = emptyList()
 
@@ -137,8 +125,7 @@ class BleManager(context: Context) {
         _isScanning.value = true
         _status.value = "Scanning for nearby bins…"
 
-        // No service filter so any nearby bin shows up even if it doesn't advertise FFF0.
-        // To restrict to the SimpleProfile service, add a ScanFilter on BleConstants.SERVICE_UUID.
+        // No filter: list all nearby devices.
         val settings = ScanSettings.Builder()
             .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
             .build()
@@ -180,8 +167,7 @@ class BleManager(context: Context) {
         }
     }
 
-    // ---- Connecting ---------------------------------------------------------
-
+    // Connecting
     fun connect(address: String) {
         disconnect()
         stopScan()
@@ -196,7 +182,7 @@ class BleManager(context: Context) {
                 _status.value = "Connected (demo)"
                 var t = 0.0
                 while (isActive) {
-                    // Simulate a slowly filling bin: distance swings ~2..80 cm.
+                    // Simulated reading.
                     val distance = (41 + 39 * sin(t)).roundToInt().coerceIn(0, 100)
                     _distanceCm.value = distance
                     t += 0.35
@@ -262,15 +248,12 @@ class BleManager(context: Context) {
             val canRead =
                 char.properties and BluetoothGattCharacteristic.PROPERTY_READ != 0
 
-            // CHAR4 is Notify: subscribe so the device pushes a reading every ~5 s.
-            if (canNotify) enableNotifications(g, char)
-            // Read once up front only if the characteristic is actually readable.
-            if (canRead) g.readCharacteristic(char)
-            // Fallback for non-notifying firmware: poll periodically.
-            if (!canNotify) startPolling(g, char)
+            if (canNotify) enableNotifications(g, char) // subscribe
+            if (canRead) g.readCharacteristic(char)     // initial read
+            if (!canNotify) startPolling(g, char)       // fallback
         }
 
-        // Called on Android < 13 (API < 33).
+        // Legacy (< API 33)
         @Suppress("DEPRECATION")
         override fun onCharacteristicChanged(
             g: BluetoothGatt,
@@ -287,7 +270,7 @@ class BleManager(context: Context) {
             if (characteristic.uuid == BleConstants.DISTANCE_CHAR_UUID) handleValue(value)
         }
 
-        // Called on Android < 13 (API < 33).
+        // Legacy (< API 33)
         @Suppress("DEPRECATION")
         override fun onCharacteristicRead(
             g: BluetoothGatt,
@@ -345,25 +328,18 @@ class BleManager(context: Context) {
     }
 
     companion object Parser {
-        /**
-         * Parse a CHAR4 notification payload into a distance in centimeters.
-         *
-         * The payload is a null-terminated ASCII string of the form "Dist: <N> cm" (max 16 bytes),
-         * e.g. "Dist: 34 cm" / "Dist: 400 cm". Returns null for empty or malformed payloads.
-         */
+        /** Parse "Dist: <N> cm" payload to cm; null if malformed. */
         fun parseDistanceCm(payload: ByteArray?): Int? {
             if (payload == null || payload.isEmpty()) return null
 
-            // ASCII string up to the null terminator (ignore anything after it).
+            // Up to null terminator.
             val nul = payload.indexOf(0.toByte())
             val length = if (nul >= 0) nul else payload.size
             if (length == 0) return null
             val text = String(payload, 0, length, Charsets.US_ASCII).trim()
 
-            // Preferred: strip the "Dist:" prefix and "cm" suffix, then parse the integer.
             val matched = DIST_REGEX.find(text)?.groupValues?.getOrNull(1)
-            // Fallback: any standalone integer in the string.
-            val number = matched ?: INT_REGEX.find(text)?.value
+            val number = matched ?: INT_REGEX.find(text)?.value // fallback: any integer
             return number?.toIntOrNull()
         }
 
@@ -374,7 +350,7 @@ class BleManager(context: Context) {
         private const val SCAN_PERIOD_MS = 12_000L
         private const val POLL_INTERVAL_MS = 2_000L
 
-        // BluetoothDevice.TRANSPORT_LE == 2; named locally to avoid an extra import.
+        // = BluetoothDevice.TRANSPORT_LE
         private const val BluetoothDevice_TRANSPORT_LE = 2
     }
 

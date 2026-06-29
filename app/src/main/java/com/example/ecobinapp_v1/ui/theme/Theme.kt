@@ -53,7 +53,7 @@ private val DarkColors = darkColorScheme(
 @Composable
 fun EcobinApp_v1Theme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color intentionally off so the ecobin brand palette is always used.
+    // Dynamic color off: keep brand palette.
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {

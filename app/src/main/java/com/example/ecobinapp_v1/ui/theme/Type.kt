@@ -6,22 +6,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-/*
- * Typography system
- * -----------------
- * Design calls for Inter (headings + body) and JetBrains Mono (data / sensor values).
- *
- * To keep the app fully offline and dependency-free, we use the platform sans-serif for text and
- * the platform monospace for data, while honoring the weight hierarchy (Bold/700 headings,
- * Regular/400 body). To drop in the real typefaces later:
- *   1. Add the .ttf files to app/src/main/res/font/ (e.g. inter_regular.ttf, inter_bold.ttf,
- *      jetbrains_mono_regular.ttf), then
- *   2. set  AppSans = FontFamily(Font(R.font.inter_regular), Font(R.font.inter_bold, FontWeight.Bold))
- *      and  MonoFamily = FontFamily(Font(R.font.jetbrains_mono_regular))
- */
+// Sans for text. Swap to Inter via res/font if desired.
 val AppSans: FontFamily = FontFamily.Default
 
-/** Used for sensor values, IDs, hex codes and other raw data strings. */
+/** Mono for data values. */
 val MonoFamily: FontFamily = FontFamily.Monospace
 
 val Typography = Typography(

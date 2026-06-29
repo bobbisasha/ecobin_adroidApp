@@ -11,10 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.util.UUID
 
-/**
- * Single source of truth for the UI: owns the bin repository and the BLE manager, and persists
- * live readings to whichever bin is currently being viewed.
- */
+/** UI state holder: owns the repo + BLE manager, persists readings for the active bin. */
 class BinViewModel(app: Application) : AndroidViewModel(app) {
 
     private val repo = BinRepository(app)
@@ -25,7 +22,7 @@ class BinViewModel(app: Application) : AndroidViewModel(app) {
     private var activeBinId: String? = null
 
     init {
-        // Whenever a fresh distance arrives, store it on the bin we're connected to.
+        // Persist each new reading.
         viewModelScope.launch {
             ble.distanceCm.collect { distance ->
                 val id = activeBinId
@@ -59,8 +56,7 @@ class BinViewModel(app: Application) : AndroidViewModel(app) {
         repo.delete(id)
     }
 
-    // ---- BLE pass-throughs --------------------------------------------------
-
+    // BLE pass-throughs
     fun startScan() = ble.startScan()
     fun stopScan() = ble.stopScan()
     fun setDemoMode(enabled: Boolean) = ble.setDemoMode(enabled)

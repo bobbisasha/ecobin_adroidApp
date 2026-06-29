@@ -24,7 +24,7 @@ import com.example.ecobinapp_v1.ui.theme.StatusCritical
 import com.example.ecobinapp_v1.ui.theme.StatusSafe
 import com.example.ecobinapp_v1.ui.theme.StatusWarn
 
-/** Color coding for fullness: green < 80%, orange 80–94%, red >= 95%. */
+/** Fullness color: green <80, orange 80–94, red >=95. */
 fun fillColor(percent: Int?): Color = when {
     percent == null -> MutedGrey
     percent >= 95 -> StatusCritical
@@ -32,10 +32,7 @@ fun fillColor(percent: Int?): Color = when {
     else -> StatusSafe
 }
 
-/**
- * A circular fullness gauge. Shows the percentage in the center and a colored arc proportional to
- * fullness. Pass null for [percent] to render an empty "no reading" state.
- */
+/** Circular fullness gauge; null = no reading. */
 @Composable
 fun FullnessGauge(
     percent: Int?,

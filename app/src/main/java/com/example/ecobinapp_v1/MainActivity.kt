@@ -76,7 +76,7 @@ fun EcoBinApp(vm: BinViewModel = viewModel()) {
         }
     }
 
-    // Runs [action] once BLE prerequisites (permissions + Bluetooth on) are satisfied.
+    // Run after permissions + Bluetooth on.
     fun runWithBle(action: () -> Unit) {
         if (vm.ble.demoMode.value) {
             action()
