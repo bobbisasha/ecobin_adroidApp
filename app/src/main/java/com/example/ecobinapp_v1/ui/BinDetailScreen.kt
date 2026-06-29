@@ -9,18 +9,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -31,13 +32,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.text.KeyboardOptions
 import com.example.ecobinapp_v1.BinViewModel
+import com.example.ecobinapp_v1.R
 import com.example.ecobinapp_v1.ble.ConnectionState
 import com.example.ecobinapp_v1.model.Bin
+import com.example.ecobinapp_v1.ui.theme.Ink
+import com.example.ecobinapp_v1.ui.theme.IoTBlue
+import com.example.ecobinapp_v1.ui.theme.MonoFamily
+import com.example.ecobinapp_v1.ui.theme.Muted
+import com.example.ecobinapp_v1.ui.theme.MutedGrey
+import com.example.ecobinapp_v1.ui.theme.StatusCritical
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,7 +59,6 @@ fun BinDetailScreen(
     val bins by vm.bins.collectAsState()
     val bin = bins.firstOrNull { it.id == binId }
 
-    // If the bin was deleted, leave the screen.
     LaunchedEffect(bin == null) {
         if (bin == null) onBack()
     }
@@ -58,13 +66,9 @@ fun BinDetailScreen(
 
     val liveDistance by vm.ble.distanceCm.collectAsState()
     val connState by vm.ble.connectionState.collectAsState()
-    val status by vm.ble.status.collectAsState()
 
-    // Connect when the screen opens; disconnect when it leaves.
     LaunchedEffect(binId) { onConnect() }
-    DisposableEffect(binId) {
-        onDispose { vm.disconnect() }
-    }
+    DisposableEffect(binId) { onDispose { vm.disconnect() } }
 
     val distance = liveDistance ?: bin.lastDistanceCm
     val percent = distance?.let { Bin.fullnessPercent(it, bin.depthCm) }
@@ -75,9 +79,9 @@ fun BinDetailScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(bin.name) },
-                navigationIcon = { TextButton(onClick = onBack) { Text("Back") } },
+            EcoTopBar(
+                title = bin.name,
+                onBack = onBack,
                 actions = { TextButton(onClick = { showEdit = true }) { Text("Edit") } }
             )
         }
@@ -86,37 +90,36 @@ fun BinDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(24.dp),
+                .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
             FullnessGauge(
                 percent = percent,
-                diameter = 230.dp,
+                diameter = 232.dp,
                 strokeWidth = 22.dp,
-                labelSize = 52
+                labelSize = 54
             )
 
-            Text(
-                text = connectionLabel(connState),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-            if (status.isNotBlank()) {
-                Text(
-                    status,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            val (label, color) = connectionVisual(connState)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_bluetooth),
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(16.dp)
                 )
+                Spacer(Modifier.width(8.dp))
+                StatusBadge(text = label, color = color)
             }
 
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
                     InfoRow("Distance to trash", distance?.let { "$it cm" } ?: "—")
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(10.dp))
                     InfoRow("Bin depth", "${bin.depthCm} cm")
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(10.dp))
                     InfoRow("Last updated", formatAgo(bin.lastUpdatedEpochMs))
                 }
             }
@@ -147,21 +150,27 @@ fun BinDetailScreen(
     }
 }
 
-private fun connectionLabel(state: ConnectionState): String = when (state) {
-    ConnectionState.CONNECTING -> "Connecting…"
-    ConnectionState.CONNECTED -> "Connected"
-    ConnectionState.FAILED -> "Connection failed"
-    ConnectionState.DISCONNECTED -> "Disconnected"
+private fun connectionVisual(state: ConnectionState): Pair<String, Color> = when (state) {
+    ConnectionState.CONNECTING -> "Connecting…" to IoTBlue
+    ConnectionState.CONNECTED -> "Connected" to IoTBlue
+    ConnectionState.FAILED -> "Connection failed" to StatusCritical
+    ConnectionState.DISCONNECTED -> "Disconnected" to MutedGrey
 }
 
 @Composable
 private fun InfoRow(label: String, value: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.titleSmall)
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = Muted)
+        Text(
+            value,
+            style = MaterialTheme.typography.titleMedium,
+            fontFamily = MonoFamily,
+            color = Ink
+        )
     }
 }
 

@@ -1,0 +1,56 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Circuit traces (top-left) -->
+    <path android:pathData="M43,45 L33,41" android:strokeColor="#3B82F6" android:strokeWidth="2" android:strokeLineCap="round" />
+    <path android:pathData="M42,49 L34,52" android:strokeColor="#3B82F6" android:strokeWidth="2" android:strokeLineCap="round" />
+    <path android:pathData="M41,46 L30,46" android:strokeColor="#3B82F6" android:strokeWidth="2" android:strokeLineCap="round" />
+    <path android:pathData="M32,40.5 m-1.7,0 a1.7,1.7 0 1,0 3.4,0 a1.7,1.7 0 1,0 -3.4,0" android:fillColor="#3B82F6" />
+    <path android:pathData="M33,52.5 m-1.7,0 a1.7,1.7 0 1,0 3.4,0 a1.7,1.7 0 1,0 -3.4,0" android:fillColor="#3B82F6" />
+    <path android:pathData="M29,46 m-1.7,0 a1.7,1.7 0 1,0 3.4,0 a1.7,1.7 0 1,0 -3.4,0" android:fillColor="#3B82F6" />
+
+    <!-- Wireless signal arcs (top-right) -->
+    <path android:pathData="M67,32 A5,5 0 0 1 72,27" android:strokeColor="#3B82F6" android:strokeWidth="2.6" android:strokeLineCap="round" />
+    <path android:pathData="M63,32 A9,9 0 0 1 72,23" android:strokeColor="#3B82F6" android:strokeWidth="2.6" android:strokeLineCap="round" />
+    <path android:pathData="M59,32 A13,13 0 0 1 72,19" android:strokeColor="#2563EB" android:strokeWidth="2.6" android:strokeLineCap="round" />
+
+    <!-- Bin -->
+    <path android:pathData="M36,54 L72,54" android:strokeColor="#10B981" android:strokeWidth="3.5" android:strokeLineCap="round" />
+    <path android:pathData="M40,56 L46,88 Q46.5,90 48.5,90 L59.5,90 Q61.5,90 62,88 L68,56"
+        android:strokeColor="#10B981" android:strokeWidth="3.5"
+        android:strokeLineCap="round" android:strokeLineJoin="round" />
+
+    <!-- Crumpled paper inside -->
+    <path android:pathData="M48,79 C46,74 52,72 54,75 C57,73 59,79 55,81 C53,84 49,83 48,79 Z"
+        android:strokeColor="#10B981" android:strokeWidth="2.2" android:strokeLineJoin="round" />
+
+    <!-- Status dot (with halo) -->
+    <path android:pathData="M60,82 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" android:fillColor="#3322C55E" />
+    <path android:pathData="M60,82 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" android:fillColor="#22C55E" />
+
+    <!-- Upward arrow (green -> blue) -->
+    <path
+        android:pathData="M44,62 C35,55 35,45 44,43 C55,40 58,41 63,34"
+        android:strokeWidth="6.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient android:startX="44" android:startY="62" android:endX="68" android:endY="30" android:type="linear">
+                <item android:color="#FF10B981" android:offset="0.0" />
+                <item android:color="#FF3B82F6" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M71,28 L61,30 L68,38 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:startX="58" android:startY="40" android:endX="72" android:endY="26" android:type="linear">
+                <item android:color="#FF10B981" android:offset="0.0" />
+                <item android:color="#FF3B82F6" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>

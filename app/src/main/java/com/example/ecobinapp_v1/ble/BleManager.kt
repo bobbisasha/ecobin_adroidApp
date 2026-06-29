@@ -40,7 +40,7 @@ enum class ConnectionState { DISCONNECTED, CONNECTING, CONNECTED, FAILED }
 /**
  * Wraps Android BLE scan/connect/notify into a small Flow-based API.
  *
- * Reads CHAR5 (distance in cm) from the TI SimpleProfile service (see [BleConstants]) either via
+ * Reads CHAR4 (an ASCII "Dist: <N> cm" string) from service 0xFFF0 (see [BleConstants]) via
  * notifications (preferred) or, if the characteristic doesn't support notify, via a periodic read.
  *
  * Demo mode simulates a bin so the whole UI can be exercised on the Android emulator, which has no
@@ -68,7 +68,7 @@ class BleManager(context: Context) {
     private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
 
-    /** Latest CHAR5 distance reading (cm), or null when none yet. */
+    /** Latest distance reading (cm), or null when none yet. */
     private val _distanceCm = MutableStateFlow<Int?>(null)
     val distanceCm: StateFlow<Int?> = _distanceCm.asStateFlow()
 
@@ -248,10 +248,10 @@ class BleManager(context: Context) {
 
         override fun onServicesDiscovered(g: BluetoothGatt, status: Int) {
             val char = g.getService(BleConstants.SERVICE_UUID)
-                ?.getCharacteristic(BleConstants.CHAR5_UUID)
+                ?.getCharacteristic(BleConstants.DISTANCE_CHAR_UUID)
             if (char == null) {
                 _connectionState.value = ConnectionState.FAILED
-                _status.value = "CHAR5 not found on device"
+                _status.value = "Distance characteristic not found"
                 return
             }
             _connectionState.value = ConnectionState.CONNECTED
@@ -259,12 +259,14 @@ class BleManager(context: Context) {
 
             val canNotify =
                 char.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY != 0
-            if (canNotify) {
-                enableNotifications(g, char)
-            }
-            // Always read once immediately so a value shows up right away.
-            g.readCharacteristic(char)
-            // If the device can't notify, poll periodically instead.
+            val canRead =
+                char.properties and BluetoothGattCharacteristic.PROPERTY_READ != 0
+
+            // CHAR4 is Notify: subscribe so the device pushes a reading every ~5 s.
+            if (canNotify) enableNotifications(g, char)
+            // Read once up front only if the characteristic is actually readable.
+            if (canRead) g.readCharacteristic(char)
+            // Fallback for non-notifying firmware: poll periodically.
             if (!canNotify) startPolling(g, char)
         }
 
@@ -274,7 +276,7 @@ class BleManager(context: Context) {
             g: BluetoothGatt,
             characteristic: BluetoothGattCharacteristic
         ) {
-            if (characteristic.uuid == BleConstants.CHAR5_UUID) handleValue(characteristic.value)
+            if (characteristic.uuid == BleConstants.DISTANCE_CHAR_UUID) handleValue(characteristic.value)
         }
 
         override fun onCharacteristicChanged(
@@ -282,7 +284,7 @@ class BleManager(context: Context) {
             characteristic: BluetoothGattCharacteristic,
             value: ByteArray
         ) {
-            if (characteristic.uuid == BleConstants.CHAR5_UUID) handleValue(value)
+            if (characteristic.uuid == BleConstants.DISTANCE_CHAR_UUID) handleValue(value)
         }
 
         // Called on Android < 13 (API < 33).
@@ -293,7 +295,7 @@ class BleManager(context: Context) {
             status: Int
         ) {
             if (status == BluetoothGatt.GATT_SUCCESS &&
-                characteristic.uuid == BleConstants.CHAR5_UUID
+                characteristic.uuid == BleConstants.DISTANCE_CHAR_UUID
             ) {
                 handleValue(characteristic.value)
             }
@@ -306,7 +308,7 @@ class BleManager(context: Context) {
             status: Int
         ) {
             if (status == BluetoothGatt.GATT_SUCCESS &&
-                characteristic.uuid == BleConstants.CHAR5_UUID
+                characteristic.uuid == BleConstants.DISTANCE_CHAR_UUID
             ) {
                 handleValue(value)
             }
@@ -337,19 +339,43 @@ class BleManager(context: Context) {
         }
     }
 
-    /** Convert raw CHAR5 bytes to a distance in cm. Adapt here if your firmware differs. */
     private fun handleValue(bytes: ByteArray?) {
-        val distance = parseDistance(bytes) ?: return
+        val distance = parseDistanceCm(bytes) ?: return
         _distanceCm.value = distance
     }
 
-    private fun parseDistance(bytes: ByteArray?): Int? {
-        if (bytes == null || bytes.isEmpty()) return null
-        return when (bytes.size) {
-            1 -> bytes[0].toInt() and 0xFF
-            // little-endian uint16 from the first two bytes (handles distances > 255 cm)
-            else -> (bytes[0].toInt() and 0xFF) or ((bytes[1].toInt() and 0xFF) shl 8)
+    companion object Parser {
+        /**
+         * Parse a CHAR4 notification payload into a distance in centimeters.
+         *
+         * The payload is a null-terminated ASCII string of the form "Dist: <N> cm" (max 16 bytes),
+         * e.g. "Dist: 34 cm" / "Dist: 400 cm". Returns null for empty or malformed payloads.
+         */
+        fun parseDistanceCm(payload: ByteArray?): Int? {
+            if (payload == null || payload.isEmpty()) return null
+
+            // ASCII string up to the null terminator (ignore anything after it).
+            val nul = payload.indexOf(0.toByte())
+            val length = if (nul >= 0) nul else payload.size
+            if (length == 0) return null
+            val text = String(payload, 0, length, Charsets.US_ASCII).trim()
+
+            // Preferred: strip the "Dist:" prefix and "cm" suffix, then parse the integer.
+            val matched = DIST_REGEX.find(text)?.groupValues?.getOrNull(1)
+            // Fallback: any standalone integer in the string.
+            val number = matched ?: INT_REGEX.find(text)?.value
+            return number?.toIntOrNull()
         }
+
+        private val DIST_REGEX = Regex("""Dist:\s*(\d+)\s*cm""", RegexOption.IGNORE_CASE)
+        private val INT_REGEX = Regex("""\d+""")
+
+        const val DEMO_ADDRESS = "DE:M0:00:00:00:01"
+        private const val SCAN_PERIOD_MS = 12_000L
+        private const val POLL_INTERVAL_MS = 2_000L
+
+        // BluetoothDevice.TRANSPORT_LE == 2; named locally to avoid an extra import.
+        private const val BluetoothDevice_TRANSPORT_LE = 2
     }
 
     fun close() {
@@ -372,14 +398,5 @@ class BleManager(context: Context) {
             product.contains("emulator") ||
             hardware.contains("goldfish") ||
             hardware.contains("ranchu")
-    }
-
-    companion object {
-        const val DEMO_ADDRESS = "DE:M0:00:00:00:01"
-        private const val SCAN_PERIOD_MS = 12_000L
-        private const val POLL_INTERVAL_MS = 2_000L
-
-        // BluetoothDevice.TRANSPORT_LE == 2; named locally to avoid an extra import.
-        private const val BluetoothDevice_TRANSPORT_LE = 2
     }
 }

@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">EcoBin</string>
+    <string name="app_name">ecobin</string>
+    <string name="splash_tagline">Smart waste monitoring</string>
 </resources>
