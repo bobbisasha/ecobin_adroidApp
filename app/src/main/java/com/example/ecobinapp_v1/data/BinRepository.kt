@@ -8,12 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONArray
 import org.json.JSONObject
 
-/**
- * Tiny persistence layer for registered bins, backed by SharedPreferences + JSON.
- *
- * Deliberately dependency-free (no Room/DataStore) to keep the app as simple as possible.
- * The current list is exposed as a [StateFlow] so the UI recomposes on every change.
- */
+/** Bin persistence via SharedPreferences + JSON, exposed as a [StateFlow]. */
 class BinRepository(context: Context) {
 
     private val prefs =
@@ -22,7 +17,7 @@ class BinRepository(context: Context) {
     private val _bins = MutableStateFlow(load())
     val bins: StateFlow<List<Bin>> = _bins.asStateFlow()
 
-    /** Add a new bin or replace an existing one with the same id. */
+    /** Add or replace by id. */
     fun upsert(bin: Bin) {
         val updated = _bins.value.filter { it.id != bin.id } + bin
         persist(updated.sortedBy { it.name.lowercase() })
@@ -34,7 +29,7 @@ class BinRepository(context: Context) {
 
     fun getById(binId: String): Bin? = _bins.value.firstOrNull { it.id == binId }
 
-    /** Store a fresh reading for a bin (called while connected). */
+    /** Store a fresh reading. */
     fun updateReading(binId: String, distanceCm: Int, timestampMs: Long) {
         val updated = _bins.value.map {
             if (it.id == binId) {

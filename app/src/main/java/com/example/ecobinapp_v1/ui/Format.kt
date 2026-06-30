@@ -1,6 +1,6 @@
 package com.example.ecobinapp_v1.ui
 
-/** Human-friendly "time ago" string for a reading timestamp. */
+/** "time ago" label. */
 fun formatAgo(epochMs: Long, nowMs: Long = System.currentTimeMillis()): String {
     if (epochMs <= 0L) return "never"
     val secs = ((nowMs - epochMs) / 1000).coerceAtLeast(0)

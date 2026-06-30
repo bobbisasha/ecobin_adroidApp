@@ -18,23 +18,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ecobinapp_v1.ui.theme.FillHigh
-import com.example.ecobinapp_v1.ui.theme.FillLow
-import com.example.ecobinapp_v1.ui.theme.FillMedium
 import com.example.ecobinapp_v1.ui.theme.GaugeTrack
+import com.example.ecobinapp_v1.ui.theme.MutedGrey
+import com.example.ecobinapp_v1.ui.theme.StatusCritical
+import com.example.ecobinapp_v1.ui.theme.StatusSafe
+import com.example.ecobinapp_v1.ui.theme.StatusWarn
 
-/** Color coding for fullness: green < 50, amber 50-79, red >= 80. */
+/** Fullness color: green <80, orange 80–94, red >=95. */
 fun fillColor(percent: Int?): Color = when {
-    percent == null -> Color(0xFFBDBDBD)
-    percent >= 80 -> FillHigh
-    percent >= 50 -> FillMedium
-    else -> FillLow
+    percent == null -> MutedGrey
+    percent >= 95 -> StatusCritical
+    percent >= 80 -> StatusWarn
+    else -> StatusSafe
 }
 
-/**
- * A circular fullness gauge. Shows the percentage in the center and a colored arc proportional to
- * fullness. Pass null for [percent] to render an empty "no reading" state.
- */
+/** Circular fullness gauge; null = no reading. */
 @Composable
 fun FullnessGauge(
     percent: Int?,

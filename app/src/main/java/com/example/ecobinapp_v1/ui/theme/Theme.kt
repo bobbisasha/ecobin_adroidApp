@@ -1,44 +1,63 @@
 package com.example.ecobinapp_v1.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Green80,
-    secondary = GreenGrey80,
-    tertiary = Teal80
+private val LightColors = lightColorScheme(
+    primary = EcoGreen,
+    onPrimary = SurfaceWhite,
+    primaryContainer = EcoGreenSoft,
+    onPrimaryContainer = EcoGreenDark,
+    secondary = IoTBlue,
+    onSecondary = SurfaceWhite,
+    secondaryContainer = IoTBlueSoft,
+    onSecondaryContainer = IoTBlueDark,
+    tertiary = IoTBlue,
+    background = SurfaceCanvas,
+    onBackground = Ink,
+    surface = SurfaceWhite,
+    onSurface = Ink,
+    surfaceVariant = ChipBg,
+    onSurfaceVariant = Muted,
+    outline = Hairline,
+    outlineVariant = Hairline,
+    error = StatusCritical,
+    onError = SurfaceWhite
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = Green40,
-    secondary = GreenGrey40,
-    tertiary = Teal40
+private val DarkColors = darkColorScheme(
+    primary = EcoGreen,
+    onPrimary = InkDark,
+    primaryContainer = EcoGreenDark,
+    onPrimaryContainer = EcoGreenSoft,
+    secondary = IoTBlue,
+    onSecondary = InkDark,
+    secondaryContainer = IoTBlueDark,
+    onSecondaryContainer = IoTBlueSoft,
+    tertiary = IoTBlue,
+    background = InkDark,
+    onBackground = OnDark,
+    surface = SurfaceDark,
+    onSurface = OnDark,
+    surfaceVariant = HairlineDark,
+    onSurfaceVariant = MutedDark,
+    outline = HairlineDark,
+    outlineVariant = HairlineDark,
+    error = StatusCritical,
+    onError = InkDark
 )
 
 @Composable
 fun EcobinApp_v1Theme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Keep the brand green consistent: dynamic (wallpaper-based) color off by default.
+    // Dynamic color off: keep brand palette.
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-
+    val colorScheme = if (darkTheme) DarkColors else LightColors
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,

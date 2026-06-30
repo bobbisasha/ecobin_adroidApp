@@ -16,14 +16,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ecobinapp_v1.ui.AddBinScreen
 import com.example.ecobinapp_v1.ui.BinDetailScreen
 import com.example.ecobinapp_v1.ui.BinListScreen
+import com.example.ecobinapp_v1.ui.CreditsScreen
+import com.example.ecobinapp_v1.ui.SplashScreen
 import com.example.ecobinapp_v1.ui.theme.EcobinApp_v1Theme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
@@ -35,15 +39,17 @@ class MainActivity : ComponentActivity() {
 }
 
 private sealed interface Screen {
+    data object Splash : Screen
     data object List : Screen
     data object AddBin : Screen
+    data object Credits : Screen
     data class Detail(val binId: String) : Screen
 }
 
 @Composable
 fun EcoBinApp(vm: BinViewModel = viewModel()) {
     val context = LocalContext.current
-    var screen by remember { mutableStateOf<Screen>(Screen.List) }
+    var screen by remember { mutableStateOf<Screen>(Screen.Splash) }
     var pendingAction by remember { mutableStateOf<(() -> Unit)?>(null) }
 
     val btEnableLauncher = rememberLauncherForActivityResult(
@@ -70,7 +76,7 @@ fun EcoBinApp(vm: BinViewModel = viewModel()) {
         }
     }
 
-    // Runs [action] once BLE prerequisites (permissions + Bluetooth on) are satisfied.
+    // Run after permissions + Bluetooth on.
     fun runWithBle(action: () -> Unit) {
         if (vm.ble.demoMode.value) {
             action()
@@ -93,11 +99,16 @@ fun EcoBinApp(vm: BinViewModel = viewModel()) {
     }
 
     when (val s = screen) {
+        is Screen.Splash -> SplashScreen(onContinue = { screen = Screen.List })
+
         is Screen.List -> BinListScreen(
             vm = vm,
             onAddBin = { screen = Screen.AddBin },
-            onOpenBin = { screen = Screen.Detail(it.id) }
+            onOpenBin = { screen = Screen.Detail(it.id) },
+            onAbout = { screen = Screen.Credits }
         )
+
+        is Screen.Credits -> CreditsScreen(onBack = { screen = Screen.List })
 
         is Screen.AddBin -> AddBinScreen(
             vm = vm,
